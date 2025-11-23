@@ -2,11 +2,15 @@ import React from 'react';
 
 const EventCalendar = () => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 h-full">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Event Calendar</h3>
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        <p>Link with Google Calendar</p>
-      </div>
+    <div className="w-full flex justify-center mt-10">
+      <iframe
+        src="https://calendar.google.com/calendar/embed?src=6f398d7d0a6f98b5503eb1b0872ad4b8c83af1467534879a24d046bd04e5bbb8%40group.calendar.google.com&ctz=Asia%2FKolkata"
+        style={{ border: 0 }}
+        width="1000"
+        height="600"
+        frameBorder="0"
+        scrolling="no"
+      ></iframe>
     </div>
   );
 };
