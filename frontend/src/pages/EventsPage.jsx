@@ -1,40 +1,56 @@
 import React, { useState } from 'react';
 import { Search } from 'lucide-react';
+
+// Components
 import UpcomingEventCard from '../components/UpcomingEventCard';
 import PastEventCard from '../components/PastEventCard';
 import EventCalendar from '../components/EventCalendar';
+import EventDetails from '../components/EventDetails'; // Import the new component
+
+// Data
+import eventsData from '../data/events.json';
 
 const EventsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('upcoming');
+  
+  // State to handle which view is active (List vs Details)
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // Sample event data - this should come from your backend/API
-  const upcomingEvents = [
-    { id: 1, title: 'Intro to ML', date: '11 Nov 2025', time: '10:00AM', type: 'Workshop' },
-    { id: 2, title: 'CodeEnigma', date: '12 Nov 2025', time: '8:00PM', type: 'Competition' },
-    { id: 3, title: 'IAC', date: '15 Nov 2025', time: '9:00AM', type: 'Conference' },
-  ];
-
+  const upcomingEvents = eventsData; 
+  
   const pastEvents = [
     { id: 4, title: 'Web Dev Bootcamp', date: '05 Oct 2025', time: '2:00PM', type: 'Workshop' },
     { id: 5, title: 'Hackathon 2025', date: '20 Sep 2025', time: '9:00AM', type: 'Competition' },
-    { id: 6, title: 'AI Summit', date: '15 Aug 2025', time: '10:00AM', type: 'Conference' },
   ];
 
   const currentEvents = activeTab === 'upcoming' ? upcomingEvents : pastEvents;
 
+  // --- VIEW TOGGLE LOGIC ---
+  // If an event is selected, we render ONLY the details page
+  if (selectedEvent) {
+    return (
+      <EventDetails 
+        event={selectedEvent} 
+        onBack={() => setSelectedEvent(null)} 
+      />
+    );
+  }
+
+  // Otherwise, we render the standard Dashboard view
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Page Title */}
       <div className="bg-white shadow-sm px-6 py-4 rounded-xl mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Events</h2>
       </div>
 
-      {/* Content Section */}
       <div className="flex-1 overflow-hidden">
         <div className="flex gap-6 h-full">
-          {/* Left Section - Events */}
+          
+          {/* Left Section */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            
             {/* Search Bar */}
             <div className="mb-4 flex-shrink-0">
               <div className="relative max-w-2xl">
@@ -73,17 +89,25 @@ const EventsPage = () => {
               </button>
             </div>
 
-            {/* Events Grid - Scrollable */}
+            {/* Events List */}
             <div className="flex-1 overflow-y-auto pr-2">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4">
+              <div className={activeTab === 'upcoming' ? "flex flex-col gap-4 pb-4" : "grid grid-cols-1 lg:grid-cols-2 gap-6 pb-4"}>
                 {currentEvents
-                  .filter(event => 
-                    event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    event.type.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
+                  .filter(event => {
+                    const titleToCheck = event.eventName || event.title; 
+                    const typeToCheck = event.eventType || event.type;
+                    return (
+                      titleToCheck.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      typeToCheck.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                  })
                   .map(event => (
                     activeTab === 'upcoming' ? (
-                      <UpcomingEventCard key={event.id} {...event} />
+                      <UpcomingEventCard 
+                        key={event.id} 
+                        event={event} 
+                        onOpenModal={setSelectedEvent} // Clicking this now triggers the full page view
+                      />
                     ) : (
                       <PastEventCard key={event.id} {...event} />
                     )
@@ -93,7 +117,7 @@ const EventsPage = () => {
           </div>
 
           {/* Right Section - Calendar */}
-          <div className="w-80 flex-shrink-0 overflow-hidden">
+          <div className="w-80 flex-shrink-0 hidden xl:block overflow-hidden">
             <EventCalendar />
           </div>
         </div>
