@@ -8,7 +8,12 @@ const eventSchema = new mongoose.Schema({
   venue: String,
   eventMode: String,
   organizer: String,
-  poster: String,
+  
+  // Image fields - UPDATED FOR CLOUDINARY
+  poster: String, // Cloudinary URL
+  posterPublicId: String, // Cloudinary public_id for deletion
+  thumbnailUrl: String, // Optional thumbnail URL
+  
   description: String,
   
   // Common fields
@@ -53,7 +58,7 @@ const eventSchema = new mongoose.Schema({
   mode: String,
   type: String
 }, {
-  timestamps: true // Automatically adds createdAt and updatedAt
+  timestamps: true
 });
 
 module.exports = mongoose.model('events', eventSchema);

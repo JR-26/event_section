@@ -1,4 +1,3 @@
-// temp-frontend/src/components/EventsAdminPage.jsx
 import React, { useState } from "react";
 
 export default function EventsAdminPage() {
@@ -33,7 +32,10 @@ export default function EventsAdminPage() {
     hackPrizes: "", hackMentors: "", hackRules: "",
   });
 
-  // PAST STATE
+  // Loading state for uploads
+  const [isUploading, setIsUploading] = useState(false);
+
+  // PAST STATE (unchanged)
   const [pastStep, setPastStep] = useState("category");
   const [pastSelectedCategory, setPastSelectedCategory] = useState("");
   const [pastData, setPastData] = useState({
@@ -57,46 +59,130 @@ export default function EventsAdminPage() {
     setPastData(prev => ({ ...prev, [name]: value }));
   };
 
-  // SUBMIT UPCOMING
+  // SUBMIT UPCOMING - UPDATED FOR FILE UPLOAD
   const handleUpcomingSubmit = async (e) => {
     e.preventDefault();
-    const payload = {
-      eventName: eventData.name,
-      eventType: selectedCategory,
-      startDate: eventData.startDate,
-      endDate: eventData.endDate || eventData.startDate,
-      venue: eventData.venue,
-      eventMode: eventData.mode,
-      organizer: eventData.organizer,
-      deadlines: eventData.deadlines,
-      poster: eventData.poster ? URL.createObjectURL(eventData.poster) : "",
-      ...eventData,
-    };
+    setIsUploading(true);
 
     try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      
+      // Add all event data fields
+      formData.append('eventName', eventData.name);
+      formData.append('eventType', selectedCategory);
+      formData.append('startDate', eventData.startDate);
+      formData.append('endDate', eventData.endDate || eventData.startDate);
+      formData.append('venue', eventData.venue);
+      formData.append('eventMode', eventData.mode);
+      formData.append('organizer', eventData.organizer);
+      formData.append('description', eventData.description);
+      formData.append('registrationLink', eventData.registrationLink);
+      formData.append('contact', eventData.contact);
+      formData.append('deadlines', eventData.deadlines);
+      formData.append('fees', eventData.fees);
+      formData.append('eligibility', eventData.eligibility);
+      formData.append('maxParticipants', eventData.maxParticipants);
+      formData.append('startTime', eventData.startTime);
+      formData.append('endTime', eventData.endTime);
+      
+      // Add category-specific fields
+      if (hackathonCategories.includes(selectedCategory)) {
+        formData.append('hackProblemStatements', eventData.hackProblemStatements);
+        formData.append('hackTechStack', eventData.hackTechStack);
+        formData.append('hackJudgingCriteria', eventData.hackJudgingCriteria);
+        formData.append('hackPrizes', eventData.hackPrizes);
+        formData.append('hackMentors', eventData.hackMentors);
+        formData.append('hackRules', eventData.hackRules);
+        formData.append('theme', eventData.theme);
+        formData.append('teamSize', eventData.teamSize);
+      }
+      
+      if (festCategories.includes(selectedCategory)) {
+        formData.append('guestDetails', eventData.guestDetails);
+        formData.append('theme', eventData.theme);
+      }
+      
+      if (trainingCategories.includes(selectedCategory)) {
+        formData.append('companyName', eventData.companyName);
+        formData.append('domain', eventData.domain);
+        formData.append('duration', eventData.duration);
+      }
+      
+      if (literaryCategories.includes(selectedCategory)) {
+        formData.append('litCategory', eventData.litCategory);
+        formData.append('rules', eventData.rules);
+      }
+      
+      if (sportsCategories.includes(selectedCategory)) {
+        formData.append('sportType', eventData.sportType);
+        formData.append('maxTeams', eventData.maxTeams);
+        formData.append('equipment', eventData.equipment);
+        formData.append('rules', eventData.rules);
+      }
+      
+      if (conferenceCategories.includes(selectedCategory)) {
+        formData.append('journalInfo', eventData.journalInfo);
+        formData.append('keynote', eventData.keynote);
+        formData.append('theme', eventData.theme);
+      }
+      
+      if (onlineCategories.includes(selectedCategory)) {
+        formData.append('platform', eventData.platform);
+        formData.append('eventLink', eventData.eventLink);
+      }
+      
+      // Add image file if exists
+      if (eventData.poster) {
+        formData.append('poster', eventData.poster);
+      }
+
       const res = await fetch("http://localhost:5000/api/events", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formData, // Send FormData, not JSON
+        // Don't set Content-Type header - browser will set it with boundary
       });
+
+      const result = await res.json();
+
       if (res.ok) {
         alert("Upcoming event saved successfully!");
-        setEventData({ ...eventData, name: "", venue: "", organizer: "", startDate: "", poster: null });
+        console.log("Event saved:", result);
+        
+        // Reset form
+        setEventData({
+          name: "", mode: "", venue: "", type: "", theme: "", organizer: "",
+          startDate: "", endDate: "", startTime: "", endTime: "", description: "",
+          poster: null, deadlines: "", fees: "", registrationLink: "", guestDetails: "",
+          contact: "", maxParticipants: "", teamSize: "", eligibility: "",
+          companyName: "", domain: "", duration: "", litCategory: "", rules: "",
+          sportType: "", maxTeams: "", equipment: "", journalInfo: "", keynote: "",
+          platform: "", eventLink: "",
+          hackProblemStatements: "", hackTechStack: "", hackJudgingCriteria: "",
+          hackPrizes: "", hackMentors: "", hackRules: "",
+        });
         setStep("category");
         setSelectedCategory("");
+      } else {
+        alert(`Error: ${result.error || 'Failed to save event'}`);
       }
     } catch (err) {
-      alert("Error saving event");
+      console.error("Error saving event:", err);
+      alert("Error saving event: " + err.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  // SUBMIT PAST
+  // SUBMIT PAST (unchanged)
   const handlePastSubmit = async (e) => {
     e.preventDefault();
+    
     const payload = {
       eventName: pastData.eventName,
       eventType: pastSelectedCategory,
       startDate: pastData.date,
+      endDate: pastData.date,
       ...pastData,
     };
 
@@ -106,6 +192,7 @@ export default function EventsAdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      
       if (res.ok) {
         alert("Past event saved successfully!");
         setPastData({
@@ -204,31 +291,54 @@ export default function EventsAdminPage() {
                     <textarea name="description" placeholder="Description" rows={4} className="w-full p-4 border rounded-xl" onChange={handleEventChange} value={eventData.description}></textarea>
                   </div>
                   <div className="col-span-2">
-                    <input type="file" name="poster" accept="image/*" className="w-full p-4 border rounded-xl" onChange={handleEventChange} />
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Event Poster / Image
+                    </label>
+                    <input 
+                      type="file" 
+                      name="poster" 
+                      accept="image/*" 
+                      className="w-full p-4 border rounded-xl file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                      onChange={handleEventChange} 
+                    />
+                    {eventData.poster && (
+                      <p className="mt-2 text-sm text-green-600">
+                        ✓ Selected: {eventData.poster.name}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {/* Category-specific fields (same as your original) */}
+                {/* Category-specific fields */}
                 {hackathonCategories.includes(selectedCategory) && (
                   <div className="grid md:grid-cols-2 gap-6 mt-6 bg-gray-50 p-6 rounded-xl">
+                    <h3 className="col-span-2 font-bold text-lg text-gray-700">Hackathon Details</h3>
                     <textarea name="hackProblemStatements" placeholder="Problem Statements" rows={3} className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackProblemStatements}></textarea>
                     <input name="hackTechStack" placeholder="Tech Stack" className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackTechStack} />
                     <textarea name="hackJudgingCriteria" placeholder="Judging Criteria" rows={3} className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackJudgingCriteria}></textarea>
                     <input name="hackPrizes" placeholder="Prizes" className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackPrizes} />
                     <input name="hackMentors" placeholder="Mentors" className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackMentors} />
-                    <textarea name="hackRules" placeholder="Rules" rows={3} className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackRules}></textarea>
+                    <input name="theme" placeholder="Theme" className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.theme} />
+                    <input name="teamSize" placeholder="Team Size" className="p-4 border rounded-xl" onChange={handleEventChange} value={eventData.teamSize} />
+                    <textarea name="hackRules" placeholder="Rules" rows={3} className="col-span-2 p-4 border rounded-xl" onChange={handleEventChange} value={eventData.hackRules}></textarea>
                   </div>
                 )}
 
-                {/* Add other category blocks exactly as you had them before (shortened for space) */}
-                {/* ... Same for fest, training, literary, sports, conference, online ... */}
-
                 <div className="flex justify-between mt-10">
-                  <button type="button" onClick={() => setStep("category")} className="px-8 py-4 bg-gray-500 text-white rounded-xl font-bold">
+                  <button 
+                    type="button" 
+                    onClick={() => setStep("category")} 
+                    className="px-8 py-4 bg-gray-500 text-white rounded-xl font-bold"
+                    disabled={isUploading}
+                  >
                     Back
                   </button>
-                  <button type="submit" className="px-10 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">
-                    Save Upcoming Event
+                  <button 
+                    type="submit" 
+                    className="px-10 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isUploading}
+                  >
+                    {isUploading ? "Uploading..." : "Save Upcoming Event"}
                   </button>
                 </div>
               </form>
@@ -236,7 +346,7 @@ export default function EventsAdminPage() {
           </div>
         )}
 
-        {/* PAST SECTION - Same clean design */}
+        {/* PAST SECTION - Unchanged */}
         {activeTab === "past" && (
           <div className="bg-white rounded-2xl shadow-xl p-8">
             {pastStep === "category" ? (
@@ -269,9 +379,9 @@ export default function EventsAdminPage() {
                   <input name="date" type="date" required className="p-4 border rounded-xl" onChange={handlePastChange} value={pastData.date} />
                 </div>
 
-                {/* All your original past fields - exactly as you had them */}
                 {hackathonCategories.includes(pastSelectedCategory) && (
                   <div className="bg-orange-50 p-6 rounded-xl space-y-4">
+                    <h3 className="font-bold text-lg text-gray-700">Winners & Results</h3>
                     <input name="hackWinningTeam" placeholder="Winning Team Name" className="w-full p-4 border rounded-xl" onChange={handlePastChange} value={pastData.hackWinningTeam} />
                     <input name="hackWinningMembers" placeholder="Winning Team Members" className="w-full p-4 border rounded-xl" onChange={handlePastChange} value={pastData.hackWinningMembers} />
                     <input name="hackPrizeAmount" placeholder="Prize Amount" className="w-full p-4 border rounded-xl" onChange={handlePastChange} value={pastData.hackPrizeAmount} />
@@ -279,9 +389,6 @@ export default function EventsAdminPage() {
                     <input name="hackBestInnovation" placeholder="Best Innovation Award" className="w-full p-4 border rounded-xl" onChange={handlePastChange} value={pastData.hackBestInnovation} />
                   </div>
                 )}
-
-                {/* Repeat same structure for all other categories exactly as you originally had */}
-                {/* ... fest, literary, sports, conference, training, online ... */}
 
                 <textarea name="summary" placeholder="Overall Summary / Key Takeaways" rows={5} className="w-full p-4 border rounded-xl" onChange={handlePastChange} value={pastData.summary}></textarea>
 
