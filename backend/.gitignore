@@ -19,6 +19,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Google OAuth Secrets
+credentials.json
+token.json
+
+
 # Build / Dist (if you ever add)
 dist/
 build/
