@@ -100,7 +100,7 @@ const TOKEN_PATH = path.join(__dirname, "token.json");
 
 // YOUR SHARED DEPARTMENT CALENDAR ID (IMPORTANT)
 const DEPT_CALENDAR_ID =
-  "6f398d7d0a6f98b5503eb1b0872ad4b8c83af1467534879a24d046bd04e5bbb8@group.calendar.google.com";
+  "c_8c051af583a2abbcf59dafaa753954df357ef63678c4bcf71daf7d27c251bc92@group.calendar.google.com";
 
 let oAuth2Client = null;
 
