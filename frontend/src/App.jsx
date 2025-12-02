@@ -1,8 +1,12 @@
+// Updated file: frontend/src/App.jsx
+// (Only adding the import and route for PostsPage; no other changes)
+
 import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import EventsPage from "./pages/EventsPage";
+import PostsPage from "./pages/PostsPage"; // Added import
 import "./index.css";
 
 // Dashboard/Home Page Component
@@ -113,6 +117,8 @@ function ProjectsPage() {
   );
 }
 
+// Removed the duplicate PostsPage function placeholder
+
 export default function App() {
   const [isOpen, setIsOpen] = useState(true);
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -142,7 +148,9 @@ export default function App() {
               <Route path="/achievements" element={<AchievementsPage />} />
               <Route path="/connect" element={<ConnectPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/posts" element={<PostsPage />} /> {/* Added route */}
             </Routes>
+
           </main>
         </div>
       </div>
