@@ -5,13 +5,14 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   const location = useLocation();
   
   const menu = [
-    { name: "Dashboard", path: "/" },
-    { name: "Leaderboards", path: "/leaderboards" },
-    { name: "Events", path: "/events" },
-    { name: "Achievements", path: "/achievements" },
-    { name: "Connect", path: "/connect" },
-    { name: "Projects", path: "/projects" },
-  ];
+  { name: "Dashboard", path: "/" },
+  { name: "Leaderboards", path: "/leaderboards" },
+  { name: "Events", path: "/events" },
+  { name: "Achievements", path: "/achievements" },
+  { name: "Connect", path: "/connect" },
+  { name: "Projects", path: "/projects" },
+  { name: "Posts", path: "/posts" },
+];
 
   return (
     <>
