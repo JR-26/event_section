@@ -8,6 +8,8 @@ import Navbar from "./components/Navbar";
 import EventsPage from "./pages/EventsPage";
 import PostsPage from "./pages/PostsPage"; // Added import
 import "./index.css";
+import QuestionBank from "./pages/QuestionBank";
+
 
 // Dashboard/Home Page Component
 function DashboardPage() {
@@ -149,6 +151,8 @@ export default function App() {
               <Route path="/connect" element={<ConnectPage />} />
               <Route path="/projects" element={<ProjectsPage />} />
               <Route path="/posts" element={<PostsPage />} /> {/* Added route */}
+              <Route path="/question-bank" element={<QuestionBank />} />
+
             </Routes>
 
           </main>

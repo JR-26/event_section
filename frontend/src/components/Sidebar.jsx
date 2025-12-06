@@ -5,18 +5,21 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
   const location = useLocation();
   
   const menu = [
-  { name: "Dashboard", path: "/" },
-  { name: "Leaderboards", path: "/leaderboards" },
-  { name: "Events", path: "/events" },
-  { name: "Achievements", path: "/achievements" },
-  { name: "Connect", path: "/connect" },
-  { name: "Projects", path: "/projects" },
-  { name: "Posts", path: "/posts" },
-];
+    { name: "Dashboard", path: "/" },
+    { name: "Leaderboards", path: "/leaderboards" },
+    { name: "Events", path: "/events" },
+    { name: "Achievements", path: "/achievements" },
+    { name: "Connect", path: "/connect" },
+    { name: "Projects", path: "/projects" },
+    { name: "Posts", path: "/posts" },
+
+    // ⭐ NEW MENU ITEM ADDED HERE
+    { name: "Question Bank", path: "/question-bank" },
+  ];
 
   return (
     <>
-      {/* TOGGLE BUTTON (always visible & attached to left edge) */}
+      {/* TOGGLE BUTTON */}
       <button
         onClick={toggleSidebar}
         className="
@@ -27,7 +30,6 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
           w-6 h-20
           flex items-center justify-center
           border-r border-blue-800
-          rounded-none
           shadow-md
           hover:bg-blue-700
           transition
