@@ -48,20 +48,8 @@ const SUBJECTS = {
   ],
 };
 
-// Generate user ID per browser
-const getUserId = () => {
-  let uid = localStorage.getItem("qpUserId");
-  if (!uid) {
-    uid = "USER-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-    localStorage.setItem("qpUserId", uid);
-  }
-  return uid;
-};
-
 export default function QuestionBank() {
-  const userId = getUserId();
-
-  const [tab, setTab] = useState("upload"); // upload | search | mine
+  const [tab, setTab] = useState("upload"); // upload | search
   const [semester, setSemester] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [manualSubjectName, setManualSubjectName] = useState("");
@@ -74,7 +62,7 @@ export default function QuestionBank() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Save to localStorage on every change
+  // Save to localStorage whenever uploads change
   useEffect(() => {
     localStorage.setItem("qpUploads", JSON.stringify(uploads));
   }, [uploads]);
@@ -102,7 +90,6 @@ export default function QuestionBank() {
 
     const newUpload = {
       id: Date.now(),
-      userId: userId, // ← Tag upload to current user
       subject: finalName,
       code: finalCode,
       internal: document.getElementById("internalType").value,
@@ -116,22 +103,12 @@ export default function QuestionBank() {
     alert("Uploaded successfully!");
   };
 
-  // Delete functionality
-  const handleDelete = (id) => {
-    if (window.confirm("Do you want to delete this question paper?")) {
-      setUploads(uploads.filter((u) => u.id !== id));
-    }
-  };
-
   // Search results
   const searchResults = uploads.filter(
     (u) =>
       u.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  // Only this user's uploads
-  const myUploads = uploads.filter((u) => u.userId === userId);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -143,7 +120,7 @@ export default function QuestionBank() {
 
       {/* TABS */}
       <div className="flex justify-center gap-4 mb-6">
-        {["upload", "search", "mine"].map((t) => (
+        {["upload", "search"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -155,7 +132,6 @@ export default function QuestionBank() {
           >
             {t === "upload" && "Upload"}
             {t === "search" && "Search"}
-            {t === "mine" && "My Uploads"}
           </button>
         ))}
       </div>
@@ -228,7 +204,10 @@ export default function QuestionBank() {
 
           {/* UPLOAD FORM */}
           {(selectedSubject || manualSubjectName) && (
-            <form onSubmit={handleUpload} className="bg-white p-4 shadow rounded">
+            <form
+              onSubmit={handleUpload}
+              className="bg-white p-4 shadow rounded"
+            >
               <label className="font-semibold">Internal Type:</label>
               <select id="internalType" className="w-full p-2 border rounded mt-2">
                 <option>Internal 1</option>
@@ -290,48 +269,6 @@ export default function QuestionBank() {
                   >
                     View
                   </a>
-                  <a
-                    href={u.fileUrl}
-                    download={u.fileName}
-                    className="bg-gray-700 text-white px-3 py-1 rounded"
-                  >
-                    Download
-                  </a>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* TAB: MY UPLOADS */}
-      {tab === "mine" && (
-        <div className="bg-white p-4 shadow rounded">
-          <h2 className="text-xl font-bold mb-4"> My Uploads</h2>
-
-          {myUploads.length === 0 ? (
-            <p className="text-gray-500 text-center">
-              You have not uploaded any question papers yet.
-            </p>
-          ) : (
-            myUploads.map((u) => (
-              <div
-                key={u.id}
-                className="border p-3 rounded mb-3 bg-gray-50 shadow-sm"
-              >
-                <p className="font-semibold">
-                  {u.code} — {u.subject}
-                </p>
-                <p className="text-sm text-gray-600">{u.internal}</p>
-
-                <div className="mt-2 flex gap-2">
-                  <a
-                    href={u.fileUrl}
-                    target="_blank"
-                    className="bg-green-600 text-white px-3 py-1 rounded"
-                  >
-                    View
-                  </a>
 
                   <a
                     href={u.fileUrl}
@@ -340,13 +277,6 @@ export default function QuestionBank() {
                   >
                     Download
                   </a>
-
-                  <button
-                    onClick={() => handleDelete(u.id)}
-                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
                 </div>
               </div>
             ))
