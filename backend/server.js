@@ -1,5 +1,5 @@
 // ============================================
-// BACKEND WITH CLOUDINARY + Google Calendar integration
+// BACKEND WITH CLOUDINARY + Google Calendar + AUTH + POSTS
 // ============================================
 
 require("dotenv").config();
@@ -12,6 +12,8 @@ const fs = require("fs");
 const path = require("path");
 const { google } = require("googleapis");
 const Event = require("./models/Event");
+const User = require("./models/User");
+const { Post, Comment } = require("./models/Post");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -40,7 +42,6 @@ const upload = multer({
   },
 });
 
-// Create uploads folder if needed
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 
 // ============================================
@@ -49,7 +50,7 @@ if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 class ImageService {
   async uploadImage(filePath, fileName) {
     const result = await cloudinary.uploader.upload(filePath, {
-      folder: "events",
+      folder: "posts",
       public_id: `${Date.now()}-${path.parse(fileName).name}`,
       resource_type: "image",
       transformation: [{ width: 1200, crop: "limit" }, { quality: "auto" }],
@@ -57,9 +58,6 @@ class ImageService {
     return {
       imageUrl: result.secure_url,
       publicId: result.public_id,
-      thumbnailUrl: cloudinary.url(result.public_id, {
-        transformation: [{ width: 400, height: 300, crop: "fill" }],
-      }),
     };
   }
 
@@ -98,13 +96,11 @@ const SCOPES = ["https://www.googleapis.com/auth/calendar.events"];
 const CREDENTIALS_PATH = path.join(__dirname, "credentials.json");
 const TOKEN_PATH = path.join(__dirname, "token.json");
 
-// YOUR SHARED DEPARTMENT CALENDAR ID (IMPORTANT)
 const DEPT_CALENDAR_ID =
   "c_8c051af583a2abbcf59dafaa753954df357ef63678c4bcf71daf7d27c251bc92@group.calendar.google.com";
 
 let oAuth2Client = null;
 
-// Load credentials.json
 if (fs.existsSync(CREDENTIALS_PATH)) {
   const creds = JSON.parse(fs.readFileSync(CREDENTIALS_PATH));
   const { client_secret, client_id, redirect_uris } = creds.web;
@@ -125,7 +121,6 @@ if (fs.existsSync(CREDENTIALS_PATH)) {
   console.log("⚠ No credentials.json found — Calendar disabled");
 }
 
-// Generate OAuth URL
 app.get("/calendar/auth", (req, res) => {
   if (!oAuth2Client)
     return res.status(500).send("OAuth client missing — add credentials.json");
@@ -139,7 +134,6 @@ app.get("/calendar/auth", (req, res) => {
   res.json({ url: authUrl });
 });
 
-// OAuth Redirect Handler
 app.get("/calendar/oauth2callback", async (req, res) => {
   try {
     const { tokens } = await oAuth2Client.getToken(req.query.code);
@@ -155,7 +149,6 @@ app.get("/calendar/oauth2callback", async (req, res) => {
   }
 });
 
-// Calendar Event Creator
 async function createCalendarEvent(payload) {
   if (!fs.existsSync(TOKEN_PATH))
     throw new Error("Not authorized — run /calendar/auth");
@@ -177,7 +170,7 @@ async function createCalendarEvent(payload) {
   };
 
   const response = await calendar.events.insert({
-    calendarId: DEPT_CALENDAR_ID, // <<< IMPORTANT FIX
+    calendarId: DEPT_CALENDAR_ID,
     resource: eventData,
   });
 
@@ -185,22 +178,341 @@ async function createCalendarEvent(payload) {
 }
 
 // ============================================
+// AUTHENTICATION ROUTES
+// ============================================
+
+// SIGNUP
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const { fullName, username, email, password, year } = req.body;
+
+    if (!fullName || !username || !email || !password || !year) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ error: "Username already taken" });
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ error: "Email already registered" });
+    }
+
+    const newUser = new User({
+      fullName,
+      username,
+      email,
+      password,
+      year
+    });
+
+    await newUser.save();
+
+    console.log("✓ New user registered:", username);
+    res.json({ 
+      success: true, 
+      message: "Account created successfully",
+      user: {
+        id: newUser._id,
+        fullName: newUser.fullName,
+        username: newUser.username,
+        email: newUser.email,
+        year: newUser.year
+      }
+    });
+
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// LOGIN
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+
+    if (!identifier || !password) {
+      return res.status(400).json({ error: "Please provide credentials" });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { username: identifier.toLowerCase() },
+        { email: identifier.toLowerCase() }
+      ]
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    console.log("✓ User logged in:", user.username);
+    res.json({
+      success: true,
+      message: "Login successful",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        username: user.username,
+        email: user.email,
+        year: user.year
+      }
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// POSTS ROUTES
+// ============================================
+
+// GET ALL POSTS
+app.get("/api/posts", async (req, res) => {
+  try {
+    const posts = await Post.find()
+      .populate('author', 'username fullName')
+      .populate({
+        path: 'comments',
+        populate: [
+          { path: 'author', select: 'username fullName' },
+          { 
+            path: 'replies',
+            populate: { path: 'author', select: 'username fullName' }
+          }
+        ]
+      })
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CREATE POST
+app.post("/api/posts", upload.array('images', 5), async (req, res) => {
+  try {
+    const { title, content, authorId, isAnonymous } = req.body;
+
+    if (!title || !content || !authorId) {
+      return res.status(400).json({ error: "Title, content, and author are required" });
+    }
+
+    const images = [];
+    
+    // Upload images to Cloudinary
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const uploaded = await imageService.uploadImage(file.path, file.originalname);
+        images.push({
+          url: uploaded.imageUrl,
+          publicId: uploaded.publicId
+        });
+        // Delete temp file
+        fs.unlinkSync(file.path);
+      }
+    }
+
+    const newPost = new Post({
+      title,
+      content,
+      author: authorId,
+      isAnonymous: isAnonymous === 'true',
+      images,
+      upvotes: [],
+      comments: []
+    });
+
+    await newPost.save();
+    
+    const populatedPost = await Post.findById(newPost._id)
+      .populate('author', 'username fullName');
+
+    console.log("✓ Post created:", newPost._id);
+    res.json({ success: true, post: populatedPost });
+
+  } catch (err) {
+    console.error("Post creation error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPVOTE POST
+app.post("/api/posts/:postId/upvote", async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { userId } = req.body;
+
+    const post = await Post.findById(postId);
+    
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Toggle upvote
+    const upvoteIndex = post.upvotes.indexOf(userId);
+    if (upvoteIndex > -1) {
+      post.upvotes.splice(upvoteIndex, 1); // Remove upvote
+    } else {
+      post.upvotes.push(userId); // Add upvote
+    }
+
+    await post.save();
+    res.json({ success: true, upvotes: post.upvotes.length });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ADD COMMENT TO POST
+app.post("/api/posts/:postId/comments", async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content, authorId, isAnonymous } = req.body;
+
+    if (!content || !authorId) {
+      return res.status(400).json({ error: "Content and author are required" });
+    }
+
+    const newComment = new Comment({
+      content,
+      author: authorId,
+      isAnonymous: isAnonymous === 'true' || isAnonymous === true,
+      upvotes: [],
+      replies: []
+    });
+
+    await newComment.save();
+
+    const post = await Post.findById(postId);
+    post.comments.push(newComment._id);
+    await post.save();
+
+    const populatedComment = await Comment.findById(newComment._id)
+      .populate('author', 'username fullName');
+
+    console.log("✓ Comment added to post:", postId);
+    res.json({ success: true, comment: populatedComment });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ADD REPLY TO COMMENT
+app.post("/api/comments/:commentId/replies", async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { content, authorId, isAnonymous } = req.body;
+
+    if (!content || !authorId) {
+      return res.status(400).json({ error: "Content and author are required" });
+    }
+
+    const newReply = new Comment({
+      content,
+      author: authorId,
+      isAnonymous: isAnonymous === 'true' || isAnonymous === true,
+      upvotes: [],
+      replies: []
+    });
+
+    await newReply.save();
+
+    const parentComment = await Comment.findById(commentId);
+    parentComment.replies.push(newReply._id);
+    await parentComment.save();
+
+    const populatedReply = await Comment.findById(newReply._id)
+      .populate('author', 'username fullName');
+
+    console.log("✓ Reply added to comment:", commentId);
+    res.json({ success: true, reply: populatedReply });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPVOTE COMMENT
+app.post("/api/comments/:commentId/upvote", async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    const { userId } = req.body;
+
+    const comment = await Comment.findById(commentId);
+    
+    if (!comment) {
+      return res.status(404).json({ error: "Comment not found" });
+    }
+
+    const upvoteIndex = comment.upvotes.indexOf(userId);
+    if (upvoteIndex > -1) {
+      comment.upvotes.splice(upvoteIndex, 1);
+    } else {
+      comment.upvotes.push(userId);
+    }
+
+    await comment.save();
+    res.json({ success: true, upvotes: comment.upvotes.length });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE POST
+app.delete("/api/posts/:postId", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Delete images from Cloudinary
+    if (post.images && post.images.length > 0) {
+      for (const img of post.images) {
+        await imageService.deleteImage(img.publicId);
+      }
+    }
+
+    // Delete all comments associated with the post
+    await Comment.deleteMany({ _id: { $in: post.comments } });
+
+    await Post.findByIdAndDelete(req.params.postId);
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
 // API ROUTES – EVENTS CRUD
 // ============================================
 
-// GET ALL EVENTS
 app.get("/api/events", async (req, res) => {
   const events = await Event.find().sort({ createdAt: -1 });
   res.json(events);
 });
 
-// GET SINGLE EVENT
 app.get("/api/events/:id", async (req, res) => {
   const event = await Event.findById(req.params.id);
   res.json(event);
 });
 
-// CREATE EVENT + UPLOAD IMAGE + SYNC TO CALENDAR
 app.post("/api/events", upload.single("poster"), async (req, res) => {
   let temp = null,
     publicId = null;
@@ -222,7 +534,6 @@ app.post("/api/events", upload.single("poster"), async (req, res) => {
 
     console.log("✓ Event added:", savedEvent.eventName);
 
-    // AUTO-SYNC TO GOOGLE CALENDAR
     if (process.env.ENABLE_CALENDAR_SYNC === "true") {
       try {
         await createCalendarEvent({
@@ -247,7 +558,6 @@ app.post("/api/events", upload.single("poster"), async (req, res) => {
   }
 });
 
-// DELETE EVENT
 app.delete("/api/events/:id", async (req, res) => {
   const event = await Event.findById(req.params.id);
 
@@ -267,5 +577,7 @@ app.listen(PORT, () => {
   console.log("→ MongoDB Connected");
   console.log("→ Cloudinary Ready");
   console.log("→ Google Calendar Ready");
+  console.log("→ Authentication Enabled");
+  console.log("→ Posts System Enabled");
   console.log("  Authorize: http://localhost:5000/calendar/auth");
 });

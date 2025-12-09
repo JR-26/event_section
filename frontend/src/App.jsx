@@ -1,15 +1,14 @@
-// Updated file: frontend/src/App.jsx
-// (Only adding the import and route for PostsPage; no other changes)
-
 import { useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import EventsPage from "./pages/EventsPage";
-import PostsPage from "./pages/PostsPage"; // Added import
-import "./index.css";
+import PostsPage from "./pages/PostsPage";
 import QuestionBank from "./pages/QuestionBank";
-
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import ProtectedRoute from "./components/ProtectedRoute";
+import "./index.css";
 
 // Dashboard/Home Page Component
 function DashboardPage() {
@@ -119,7 +118,25 @@ function ProjectsPage() {
   );
 }
 
-// Removed the duplicate PostsPage function placeholder
+// Main Layout Component with Sidebar and Navbar
+function MainLayout({ children, isOpen, toggleSidebar }) {
+  return (
+    <div className="h-screen bg-[#f5f7fb] font-sans overflow-hidden flex relative">
+      <Sidebar isOpen={isOpen} toggleSidebar={toggleSidebar} />
+      <div
+        className={`
+          flex-1 flex flex-col overflow-hidden transition-all duration-300
+          ${isOpen ? "ml-64" : "ml-0"}
+        `}
+      >
+        <Navbar />
+        <main className="flex-1 overflow-y-auto p-10">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [isOpen, setIsOpen] = useState(true);
@@ -127,37 +144,96 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="h-screen bg-[#f5f7fb] font-sans overflow-hidden flex relative">
-        {/* SIDEBAR */}
-        <Sidebar isOpen={isOpen} toggleSidebar={toggleSidebar} />
-        
-        {/* MAIN AREA */}
-        <div
-          className={`
-            flex-1 flex flex-col overflow-hidden transition-all duration-300
-            ${isOpen ? "ml-64" : "ml-0"}
-          `}
-        >
-          {/* NAVBAR */}
-          <Navbar />
-          
-          {/* PAGE CONTENT */}
-          <main className="flex-1 overflow-y-auto p-10">
-            <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/leaderboards" element={<LeaderboardsPage />} />
-              <Route path="/events" element={<EventsPage />} />
-              <Route path="/achievements" element={<AchievementsPage />} />
-              <Route path="/connect" element={<ConnectPage />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/posts" element={<PostsPage />} /> {/* Added route */}
-              <Route path="/question-bank" element={<QuestionBank />} />
+      <Routes>
+        {/* Public Routes - Redirect to login if accessing root */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-            </Routes>
+        {/* Protected Routes - With Sidebar/Navbar */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <DashboardPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboards"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <LeaderboardsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/events"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <EventsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/achievements"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <AchievementsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/connect"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <ConnectPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/projects"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <ProjectsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/posts"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <PostsPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/question-bank"
+          element={
+            <ProtectedRoute>
+              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+                <QuestionBank />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
 
-          </main>
-        </div>
-      </div>
+        {/* Catch all - redirect to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }
