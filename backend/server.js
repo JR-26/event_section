@@ -14,6 +14,7 @@ const { google } = require("googleapis");
 const Event = require("./models/Event");
 const User = require("./models/User");
 const { Post, Comment } = require("./models/Post");
+const QuestionPaper = require("./models/QuestionPaper");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,16 +30,17 @@ cloudinary.config({
 console.log("✓ Cloudinary configured");
 
 // ============================================
-// MULTER CONFIG FOR IMAGE UPLOAD
+// MULTER CONFIG FOR IMAGE UPLOAD AND PDF UPLOAD
 // ============================================
 const upload = multer({
   dest: "uploads/",
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|gif|webp/;
+    // UPDATED REGEX TO INCLUDE PDF
+    const allowed = /jpeg|jpg|png|gif|webp|pdf/; 
     const valid = allowed.test(path.extname(file.originalname).toLowerCase());
     if (valid) cb(null, true);
-    else cb(new Error("Only image files allowed"));
+    else cb(new Error("Only image and PDF files allowed"));
   },
 });
 
@@ -567,6 +569,116 @@ app.delete("/api/events/:id", async (req, res) => {
 
   await Event.findByIdAndDelete(req.params.id);
   res.json({ success: true });
+});
+
+// ============================================
+// QUESTION PAPER ROUTES (PDFs)
+// ============================================
+
+// 1. UPLOAD PDF (With Error Handling for Large Files)
+app.post("/api/qp", (req, res, next) => {
+  // Wrap upload in a function to catch Multer errors
+  upload.single("pdfFile")(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: "File too large. Maximum limit is 10MB." });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    // If no error, proceed to the main logic
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const { semester, subjectCode, subjectName, examType, authorId } = req.body;
+    
+    if (!req.file) return res.status(400).json({ error: "PDF file is required" });
+    if (!authorId) return res.status(400).json({ error: "Author ID is required" });
+
+    // Sanitize Filename
+    const cleanExamType = examType.trim().replace(/\s+/g, "_"); 
+    const cleanCode = subjectCode.trim().replace(/\s+/g, "_");
+    const publicId = `${cleanCode}_${cleanExamType}_${Date.now()}.pdf`;
+
+    // Upload to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "question_papers",
+      resource_type: "raw", 
+      public_id: publicId,
+      use_filename: true,
+      unique_filename: false
+    });
+
+    const newQP = new QuestionPaper({
+      semester,
+      subjectCode,
+      subjectName,
+      examType,
+      fileName: req.file.originalname,
+      fileUrl: result.secure_url,
+      publicId: result.public_id,
+      author: authorId,
+    });
+
+    await newQP.save();
+    fs.unlinkSync(req.file.path);
+
+    const populatedQP = await QuestionPaper.findById(newQP._id).populate("author", "username fullName");
+    res.json({ success: true, data: populatedQP });
+
+  } catch (err) {
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    console.error("QP Upload Error:", err);
+    res.status(500).json({ error: "Server Error: " + err.message });
+  }
+});
+
+// 2. GET ALL PAPERS (Updated to populate author details)
+app.get("/api/qp", async (req, res) => {
+  try {
+    const { search } = req.query;
+    let query = {};
+
+    if (search) {
+      query = {
+        $or: [
+          { subjectName: { $regex: search, $options: "i" } },
+          { subjectCode: { $regex: search, $options: "i" } },
+        ],
+      };
+    }
+
+    // ✅ .populate() fills in the author field with actual user data
+    const papers = await QuestionPaper.find(query)
+      .populate("author", "username fullName email") 
+      .sort({ uploadedAt: -1 });
+      
+    res.json(papers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. DELETE PAPER
+app.delete("/api/qp/:id", async (req, res) => {
+  try {
+    const paper = await QuestionPaper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ error: "Paper not found" });
+
+    // Try deleting as 'image' first (Cloudinary sometimes treats PDFs as images), then 'raw'
+    try {
+        await cloudinary.uploader.destroy(paper.publicId);
+    } catch (e) {
+        await cloudinary.uploader.destroy(paper.publicId, { resource_type: "raw" });
+    }
+
+    await QuestionPaper.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ============================================
