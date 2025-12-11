@@ -44,7 +44,7 @@ const LoginPage = () => {
       if (response.ok) {
         // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/');
+        navigate('/posts');
       } else {
         setError(data.error || 'Login failed');
       }

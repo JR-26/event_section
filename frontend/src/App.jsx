@@ -145,71 +145,99 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public Routes - Redirect to login if accessing root */}
+        {/* 
+          ============================================
+          PUBLIC ROUTES - No Authentication Required
+          ============================================
+        */}
+        
+        {/* Login and Signup pages */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
 
-        {/* Protected Routes - With Sidebar/Navbar */}
+        {/* 
+          ============================================
+          PUBLIC APPLICATION ROUTES
+          All pages EXCEPT Posts are now public
+          ============================================
+        */}
+        
+        {/* Dashboard/Home - PUBLIC */}
         <Route
           path="/"
           element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <DashboardPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <DashboardPage />
+            </MainLayout>
           }
         />
+
+        {/* Leaderboards - PUBLIC */}
         <Route
           path="/leaderboards"
           element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <LeaderboardsPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <LeaderboardsPage />
+            </MainLayout>
           }
         />
+
+        {/* Events - PUBLIC */}
         <Route
           path="/events"
           element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <EventsPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <EventsPage />
+            </MainLayout>
           }
         />
+
+        {/* Achievements - PUBLIC */}
         <Route
           path="/achievements"
           element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <AchievementsPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <AchievementsPage />
+            </MainLayout>
           }
         />
+
+        {/* Connect - PUBLIC */}
         <Route
           path="/connect"
           element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <ConnectPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <ConnectPage />
+            </MainLayout>
           }
         />
+
+        {/* Projects - PUBLIC */}
         <Route
           path="/projects"
           element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <ProjectsPage />
-              </MainLayout>
-            </ProtectedRoute>
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <ProjectsPage />
+            </MainLayout>
           }
         />
+
+        {/* Question Bank - PUBLIC */}
+        <Route
+          path="/question-bank"
+          element={
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <QuestionBank />
+            </MainLayout>
+          }
+        />
+
+        {/* 
+          ============================================
+          PROTECTED ROUTE - Authentication Required
+          ONLY the Posts page requires login
+          ============================================
+        */}
         <Route
           path="/posts"
           element={
@@ -220,19 +248,9 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/question-bank"
-          element={
-            <ProtectedRoute>
-              <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
-                <QuestionBank />
-              </MainLayout>
-            </ProtectedRoute>
-          }
-        />
 
-        {/* Catch all - redirect to login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch all - redirect to home instead of login */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
