@@ -12,9 +12,12 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
     { name: "Connect", path: "/connect" },
     { name: "Projects", path: "/projects" },
     { name: "Posts", path: "/posts" },
+    
 
     // ⭐ NEW MENU ITEM ADDED HERE
     { name: "Question Bank", path: "/question-bank" },
+    { name: "Association Members", path: "/association-members" },
+
   ];
 
   return (

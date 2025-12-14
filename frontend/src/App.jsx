@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 import EventsPage from "./pages/EventsPage";
 import PostsPage from "./pages/PostsPage";
 import QuestionBank from "./pages/QuestionBank";
+import AssociationMembers from "./pages/AssociationMembers";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -231,6 +232,15 @@ export default function App() {
             </MainLayout>
           }
         />
+        <Route
+          path="/association-members"
+          element={
+            <MainLayout isOpen={isOpen} toggleSidebar={toggleSidebar}>
+              <AssociationMembers />
+            </MainLayout>
+          }
+        />
+
 
         {/* 
           ============================================
