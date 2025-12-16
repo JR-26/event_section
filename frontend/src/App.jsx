@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import EventsPage from "./pages/EventsPage";
@@ -9,6 +9,8 @@ import AssociationMembers from "./pages/AssociationMembers";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import EventsAdminPage from "./components/EventsAdminPage";
+import ManageUploads from "./components/ManageUploads";
 import "./index.css";
 
 // Dashboard/Home Page Component
@@ -139,6 +141,45 @@ function MainLayout({ children, isOpen, toggleSidebar }) {
   );
 }
 
+// Admin Layout Component (Simple layout for admin pages)
+function AdminLayout({ children }) {
+  return (
+    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
+      {/* ADMIN NAVBAR */}
+      <nav style={{ marginBottom: "20px", display: "flex", gap: "20px" }}>
+        <Link
+          to="/adminpage"
+          style={{
+            padding: "10px 15px",
+            background: "#1e3a8a",
+            color: "white",
+            borderRadius: "6px",
+            textDecoration: "none",
+          }}
+        >
+          Manage Events
+        </Link>
+
+        <Link
+          to="/adminpage/manage-uploads"
+          style={{
+            padding: "10px 15px",
+            background: "#1e3a8a",
+            color: "white",
+            borderRadius: "6px",
+            textDecoration: "none",
+          }}
+        >
+          Manage QP Uploads
+        </Link>
+      </nav>
+
+      {/* ADMIN CONTENT */}
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   const [isOpen, setIsOpen] = useState(true);
   const toggleSidebar = () => setIsOpen(!isOpen);
@@ -155,6 +196,28 @@ export default function App() {
         {/* Login and Signup pages */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+
+        {/* 
+          ============================================
+          ADMIN ROUTES - Separate Layout
+          ============================================
+        */}
+        <Route
+          path="/adminpage"
+          element={
+            <AdminLayout>
+              <EventsAdminPage />
+            </AdminLayout>
+          }
+        />
+        <Route
+          path="/adminpage/manage-uploads"
+          element={
+            <AdminLayout>
+              <ManageUploads />
+            </AdminLayout>
+          }
+        />
 
         {/* 
           ============================================
@@ -232,6 +295,8 @@ export default function App() {
             </MainLayout>
           }
         />
+        
+        {/* Association Members - PUBLIC */}
         <Route
           path="/association-members"
           element={
@@ -240,7 +305,6 @@ export default function App() {
             </MainLayout>
           }
         />
-
 
         {/* 
           ============================================
